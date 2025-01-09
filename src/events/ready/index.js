@@ -6,10 +6,10 @@ export const event = {
 };
 
 export const action = (bot) => {
-  console.log(`準備完成! 已登入 ${bot.user.tag}`);
+  console.log(`啟動完成! 已登入 ${bot.user.tag}`);
 
   bot.user.setPresence({
     status: "online", //idle
-    activities: [{ name: `Blow out`, type: ActivityType.Listening }],
+    activities: [{ name: `パニグレ`, type: ActivityType.PLAYING }],
   });
 };
