@@ -7,15 +7,17 @@ import { loadCommands, loadEvents } from "@/core/loader";
 vueInit();
 dotenv.config();
 
-loadCommands();
-
-const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+const client = new Client({
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent,
+  ],
+});
 const appStore = useAppStore();
 appStore.client = client;
 
+loadCommands(client);
 loadEvents();
 
-
-
-// Log in to Discord with your client's token
 client.login(process.env.TOKEN);

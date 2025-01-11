@@ -2,18 +2,26 @@ import { REST, Routes, Collection } from "discord.js";
 import fg from "fast-glob";
 import { useAppStore } from "@/store/app";
 
-// const updateSlashCommands = (guildId) => {
-const updateSlashCommands = async (commands) => {
+
+const updateSlashCommands = async (commands,client) => {
   const rest = new REST().setToken(process.env.TOKEN);
-  const cmd_result = rest.put(
-    Routes.applicationGuildCommands(process.env.APP_ID, "604141682077990922"),
-    {
-      body: commands,
+
+  try {
+    const guilds = await client.guilds.fetch();
+   
+    for (const [guildId, guild] of guilds) {
+      //console.log(`📤 正在上傳指令到群組：${guild.name}`);
+      await rest.put(
+        Routes.applicationGuildCommands(process.env.APP_ID, guildId),
+        { body: commands, }
+      );
     }
-  );
+  } catch (error) {
+    console.error(`❌ 無法上傳指令到群組：${guild.name}`, error);
+  }
 };
 
-export const loadCommands = async () => {
+export const loadCommands = async (client) => {
   const appStore = useAppStore();
   const commands = [];
   const actions = new Collection();
@@ -26,7 +34,7 @@ export const loadCommands = async () => {
     actions.set(cmd.command.name, cmd.action);
   }
 
-  await updateSlashCommands(commands);
+  await updateSlashCommands(commands,client);
   appStore.commandsActionMap = actions;
 };
 
