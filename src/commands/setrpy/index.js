@@ -1,4 +1,8 @@
-import { SlashCommandBuilder, PermissionFlagsBits } from "discord.js";
+import {
+  SlashCommandBuilder,
+  PermissionFlagsBits,
+  MessageFlags,
+} from "discord.js";
 import { useAppStore } from "@/store/app";
 
 export const command = new SlashCommandBuilder()
@@ -23,12 +27,12 @@ export const action = async (ctx) => {
 
     await ctx.reply({
       content: `✅ 成功設定！`,
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
   } catch (error) {
     await ctx.reply({
       content: "❌ 設定回覆失敗，請稍後再試。",
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
   }
 };

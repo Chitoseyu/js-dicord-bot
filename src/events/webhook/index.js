@@ -16,9 +16,9 @@ export const action = async (bot) => {
       return console.log("No webhook was found that I can use!");
     }
     await webhook.send({
-      content: "JS Bot 上線囉",
+      content: "Liv Helper 上線囉",
       username: "Bot_Elf",
-      avatarURL: "https://i.imgur.com/YXbYWnh.png",
+      avatarURL: "https://i.imgur.com/LzEh5UO.png",
     });
   } catch (error) {
     console.error("Error trying to send a message: ", error);

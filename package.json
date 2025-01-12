@@ -1,10 +1,14 @@
 {
+  "name": "Liv_Helper_Bot",
+  "version": "1.0.0",
+  "license": "UNLICENSED",
+  "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite-node src/main.js"
   },
   "dependencies": {
-    "discord.js": "^14.11.0",
+    "discord.js": "^14.17.3",
     "dotenv": "^16.0.3",
     "fast-glob": "^3.2.12",
     "pinia": "^2.1.3",

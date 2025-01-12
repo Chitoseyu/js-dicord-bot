@@ -1,4 +1,9 @@
-import { SlashCommandBuilder, PermissionFlagsBits } from "discord.js";
+import {
+  SlashCommandBuilder,
+  PermissionFlagsBits,
+  EmbedBuilder,
+  MessageFlags,
+} from "discord.js";
 import { useAppStore } from "@/store/app";
 
 export const command = new SlashCommandBuilder()
@@ -15,24 +20,29 @@ export const action = async (ctx) => {
     if (replies.size === 0) {
       await ctx.reply({
         content: "目前沒有設定任何回覆字串。",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
-    let replyContent = "目前設置的回覆字串：\n";
-    replies.forEach((response, keyword) => {
-      replyContent += `**${keyword}**: ${response}\n`;
-    });
+    const embed = new EmbedBuilder()
+      .setTitle("設置的回覆字串")
+      .setColor("#0099ff");
 
-    // 回傳目前的回覆設定
+    replies.forEach((response, keyword) => {
+      embed.addFields({
+        name: `\`${keyword}\``,
+        value: `${response}`,
+        inline: false,
+      });
+    });
     await ctx.reply({
-      content: replyContent,
-      ephemeral: true,
+      embeds: [embed],
+      flags: MessageFlags.Ephemeral,
     });
   } catch (error) {
     await ctx.reply({
       content: "❌ 查詢回覆字串時出錯，請稍後再試。",
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
   }
 };

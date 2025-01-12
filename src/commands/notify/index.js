@@ -1,4 +1,8 @@
-import { SlashCommandBuilder, PermissionFlagsBits } from "discord.js";
+import {
+  SlashCommandBuilder,
+  PermissionFlagsBits,
+  MessageFlags,
+} from "discord.js";
 
 export const command = new SlashCommandBuilder()
   .setName("notify")
@@ -24,14 +28,14 @@ export const action = async (ctx) => {
     if (time <= 0) {
       return await ctx.reply({
         content: "❌ 時間必須為正數（分鐘）。",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
 
     // 確認設定的提醒
     await ctx.reply({
       content: `⏰ 將在 ${time} 分鐘後提醒 ${user.username}。`,
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
 
     setTimeout(async () => {
@@ -42,7 +46,7 @@ export const action = async (ctx) => {
   } catch (error) {
     await ctx.reply({
       content: "❌ 設定提醒失敗，請稍後再試。",
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
   }
 };
