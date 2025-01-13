@@ -1,18 +1,11 @@
-import { Events, ActivityType } from "discord.js";
+import { Events } from "discord.js";
 
 export const event = {
-  name: Events.ClientReady,
+  name: Events.ShardDisconnect,
   once: true,
 };
 
 export const action = async (bot) => {
-  console.log(`啟動完成! 已登入 ${bot.user.tag}`);
-
-  bot.user.setPresence({
-    status: "online", //idle
-    activities: [{ name: `パニグレ`, type: ActivityType.PLAYING }],
-  });
-
   try {
     const channel = bot.channels.cache.get(process.env.Webhook_channel_id);
     const webhooks = await channel.fetchWebhooks();
@@ -24,7 +17,7 @@ export const action = async (bot) => {
       return console.log("No webhook was found that I can use!");
     }
 
-    const messageContent = `Liv Helper 上線囉！`;
+    const messageContent = `Liv Helper 下線囉！`;
 
     await webhook.send({
       content: messageContent,
