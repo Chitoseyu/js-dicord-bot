@@ -7,7 +7,7 @@ export const command = new SlashCommandBuilder()
 export const action = async (ctx) => {
   const sent = await ctx.reply({
     content: "正在計算延遲 ......",
-    fetchReply: true,
+    withResponse: true,
   });
 
   const ping_data = sent.createdTimestamp - ctx.createdTimestamp;
