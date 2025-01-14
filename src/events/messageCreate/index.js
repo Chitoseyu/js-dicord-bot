@@ -11,12 +11,14 @@ export const action = async (message) => {
   if (message.author.bot) return;
 
   const appStore = useAppStore();
-  const replies = appStore.replies;
+
+  const guildReplies = appStore.replies.get(message.guild.id);
+  if (!guildReplies) return;
 
   const userMessage = message.content.toLowerCase();
 
-  if (replies.has(userMessage)) {
-    const response = replies.get(userMessage);
+  if (guildReplies.has(userMessage)) {
+    const response = guildReplies.get(userMessage);
     await message.channel.send(response);
   }
 };

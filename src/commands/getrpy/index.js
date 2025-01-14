@@ -8,40 +8,43 @@ import { useAppStore } from "@/store/app";
 
 export const command = new SlashCommandBuilder()
   .setName("getrpy")
-  .setDescription("查看目前設置的所有回覆字串")
+  .setDescription("查看關鍵字的回覆訊息")
   .setDefaultMemberPermissions(PermissionFlagsBits.UseApplicationCommands)
   .setDMPermission(false);
 
 export const action = async (ctx) => {
   try {
+    const guildId = ctx.guildId;
     const appStore = useAppStore();
-    const replies = appStore.replies;
 
-    if (replies.size === 0) {
-      await ctx.reply({
-        content: "目前沒有設定任何回覆字串。",
+    // 確認該伺服器是否有回覆設定
+    if (!appStore.replies.has(guildId)) {
+      return await ctx.reply({
+        content: "❌ 尚未設定任何回覆訊息！",
         flags: MessageFlags.Ephemeral,
       });
-      return;
     }
+    const guildReplies = appStore.replies.get(guildId);
+
     const embed = new EmbedBuilder()
-      .setTitle("設置的回覆字串")
+      .setTitle("設置的回覆訊息")
       .setColor("#0099ff");
 
-    replies.forEach((response, keyword) => {
+    guildReplies.forEach((response, keyword) => {
       embed.addFields({
         name: `\`${keyword}\``,
         value: `${response}`,
         inline: false,
       });
     });
+
     await ctx.reply({
       embeds: [embed],
       flags: MessageFlags.Ephemeral,
     });
   } catch (error) {
     await ctx.reply({
-      content: "❌ 查詢回覆字串時出錯，請稍後再試。",
+      content: "❌ 查詢回覆訊息時出錯，請稍後再試。",
       flags: MessageFlags.Ephemeral,
     });
   }

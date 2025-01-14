@@ -6,37 +6,34 @@ import {
 import { useAppStore } from "@/store/app";
 
 export const command = new SlashCommandBuilder()
-  .setName("setrpy")
-  .setDescription("設定關鍵字的回覆訊息")
+  .setName("delrpy")
+  .setDescription("刪除關鍵字的回覆訊息")
   .setDefaultMemberPermissions(PermissionFlagsBits.UseApplicationCommands)
   .setDMPermission(false)
   .addStringOption((option) =>
-    option.setName("keyword").setDescription("觸發關鍵字").setRequired(true)
-  )
-  .addStringOption((option) =>
-    option.setName("response").setDescription("回應內容").setRequired(true)
+    option.setName("keyword").setDescription("刪除的關鍵字").setRequired(true)
   );
 
 export const action = async (ctx) => {
   try {
-    const guildId = ctx.guildId;
     const keyword = ctx.options.getString("keyword").toLowerCase();
-    const response = ctx.options.getString("response");
-
     const appStore = useAppStore();
-    // 檢查該伺服器是否有回覆設定，若無則創建
-    if (!appStore.replies.has(guildId)) {
-      appStore.replies.set(guildId, new Map());
+    const guildId = ctx.guild.id;
+
+    const guildReplies = appStore.replies.get(guildId);
+    if (!guildReplies || !guildReplies.has(keyword)) {
+      await ctx.reply({
+        content: `❌ 無法找到 \`${keyword}\` 的回覆設定。`,
+        flags: MessageFlags.Ephemeral,
+      });
+      return;
     }
 
-    // 儲存回覆設定
-    const guildReplies = appStore.replies.get(guildId);
-    guildReplies.set(keyword, response);
-
+    guildReplies.delete(keyword);
+    appStore.replies.set(guildId, guildReplies);
     appStore.saveReplies();
-
     await ctx.reply({
-      content: `✅ 設定回覆成功！`,
+      content: `✅ 已成功刪除 \`${keyword}\` 的回覆設定。`,
       flags: MessageFlags.Ephemeral,
     });
   } catch (error) {

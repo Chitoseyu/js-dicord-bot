@@ -6,11 +6,11 @@ import {
 
 export const command = new SlashCommandBuilder()
   .setName("sayd")
-  .setDescription("讓機器人重複說過的話")
+  .setDescription("讓Bot回覆")
   .setDefaultMemberPermissions(PermissionFlagsBits.UseApplicationCommands)
   .setDMPermission(false)
   .addStringOption((string) =>
-    string.setName("text").setDescription("重複的話").setRequired(true)
+    string.setName("text").setDescription("回覆訊息").setRequired(true)
   );
 
 export const action = async (ctx) => {
@@ -20,7 +20,7 @@ export const action = async (ctx) => {
     await ctx.channel.send(message);
 
     const bot_reply = await ctx.reply({
-      content: "✅ 已成功發送訊息。",
+      content: "✅ 已成功發送訊息",
       flags: MessageFlags.Ephemeral,
     });
     setTimeout(() => bot_reply.delete().catch(console.error), 3000);
