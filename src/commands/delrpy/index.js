@@ -38,7 +38,7 @@ export const action = async (ctx) => {
     });
   } catch (error) {
     await ctx.reply({
-      content: "❌ 設定回覆失敗，請稍後再試。",
+      content: "❌ 刪除回覆設定失敗，請稍後再試。",
       flags: MessageFlags.Ephemeral,
     });
   }

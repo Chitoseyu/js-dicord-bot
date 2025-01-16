@@ -1,4 +1,4 @@
 node_modules
-yarn.lack
+yarn.lock
 .env
 replies.json
