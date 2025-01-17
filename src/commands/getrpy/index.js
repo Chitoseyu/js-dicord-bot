@@ -14,15 +14,15 @@ export const command = new SlashCommandBuilder()
 
 export const action = async (ctx) => {
   try {
+    // 延遲回應，確保互動被正確處理
+    await ctx.deferReply({ flags: MessageFlags.Ephemeral });
+
     const guildId = ctx.guildId;
     const appStore = useAppStore();
 
     // 確認該伺服器是否有回覆設定
     if (!appStore.replies.has(guildId)) {
-      return await ctx.reply({
-        content: "❌ 尚未設定任何回覆訊息！",
-        flags: MessageFlags.Ephemeral,
-      });
+      return await ctx.editReply("❌ 尚未設定任何回覆訊息！");
     }
     const guildReplies = appStore.replies.get(guildId);
 
@@ -38,10 +38,7 @@ export const action = async (ctx) => {
       });
     });
 
-    await ctx.reply({
-      embeds: [embed],
-      flags: MessageFlags.Ephemeral,
-    });
+    await ctx.editReply({ embeds: [embed], flags: MessageFlags.Ephemeral });
   } catch (error) {
     await ctx.reply({
       content: "❌ 查詢回覆訊息時出錯，請稍後再試。",

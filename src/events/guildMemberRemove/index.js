@@ -15,6 +15,13 @@ export const action = async (member) => {
     return;
   }
 
+  // 檢查 Bot 是否擁有必要權限，被踢出不發送任何訊息
+  const botPermissions = defaultChannel.permissionsFor(member.guild.members.me);
+  if (!botPermissions?.has("SendMessages") || !botPermissions.has("ViewChannel")) {
+    //console.error("Bot 缺少發送訊息或查看頻道的權限！");
+    return;
+  }
+  
   const nickname = member.displayName;
 
   const leaveMessage = `👋 成員 **${nickname}** 離開了 我們懷念他 😢`;
