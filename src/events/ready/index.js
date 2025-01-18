@@ -1,5 +1,7 @@
 import { Events, ActivityType } from "discord.js";
 
+import { startReminderChecker } from "@/utils/reminderChecker";
+
 export const event = {
   name: Events.ClientReady,
   once: true,
@@ -7,6 +9,8 @@ export const event = {
 
 export const action = async (bot) => {
   console.log(`啟動完成! 已登入 ${bot.user.tag}`);
+
+  startReminderChecker(bot);
 
   bot.user.setPresence({
     status: "online", //idle
