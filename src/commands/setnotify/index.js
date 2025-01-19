@@ -3,14 +3,11 @@ import {
   PermissionFlagsBits,
   MessageFlags,
 } from "discord.js";
-import fs from "fs/promises";
-import path from "path";
-
-const REMINDERS_FILE = path.resolve("./reminders.json");
+import { addReminder } from "@/utils/reminderChecker";
 
 export const command = new SlashCommandBuilder()
-  .setName("notify")
-  .setDescription("在指定的時間提醒使用者訊息")
+  .setName("setnotify")
+  .setDescription("設定時間提醒任務")
   .setDefaultMemberPermissions(PermissionFlagsBits.UseApplicationCommands)
   .setDMPermission(false)
   .addUserOption((option) =>
@@ -19,7 +16,7 @@ export const command = new SlashCommandBuilder()
   .addStringOption((option) =>
     option
       .setName("time")
-      .setDescription("提醒時間 (格式: YYYY-MM-DD HH:mm)")
+      .setDescription("提醒時間 (格式: MM-DD HH:mm，例如 01-18 13:30)")
       .setRequired(true)
   )
   .addStringOption((option) =>
@@ -34,19 +31,25 @@ export const action = async (ctx) => {
 
     // 驗證時間格式
     const TIME_FORMAT_REGEX =
-      /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01]) ([01][0-9]|2[0-3]):([0-5][0-9])$/;
+      /^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01]) ([01]\d|2[0-3]):([0-5]\d)$/;
 
     if (!TIME_FORMAT_REGEX.test(timeInput)) {
       return await ctx.reply({
-        content: "❌ 提醒時間格式無效，請使用格式 YYYY-MM-DD HH:mm。",
+        content:
+          "❌ 提醒時間格式無效，請使用格式 MM-DD HH:mm，例如 01-18 13:30。",
         flags: MessageFlags.Ephemeral,
       });
     }
-    // 將時間字串解析為日期物件
-    const reminderTime = new Date(`${timeInput}:00`); // 加上秒數避免解析問題
-    if (isNaN(reminderTime.getTime())) {
+    // 獲取當前年份，並轉換為完整日期
+    const [month, day, hour, minute] = timeInput.split(/[- :]/).map(Number);
+    const now = new Date();
+    const year = now.getFullYear();
+    const reminderTime = new Date(year, month - 1, day, hour, minute);
+
+    // 驗證時間是否為未來
+    if (reminderTime <= now) {
       return await ctx.reply({
-        content: "❌ 提醒時間無效，請提供有效的日期與時間。",
+        content: "❌ 提醒時間必須是未來時間。",
         flags: MessageFlags.Ephemeral,
       });
     }
@@ -59,26 +62,16 @@ export const action = async (ctx) => {
       message,
     };
 
-    // 讀取現有提醒
-    let reminders = [];
-    try {
-      const data = await fs.readFile(REMINDERS_FILE, "utf-8");
-      reminders = JSON.parse(data);
-    } catch {
-      // 檔案不存在，無處理
-    }
-    // 加入新提醒並儲存
-    reminders.push(reminder);
-    await fs.writeFile(REMINDERS_FILE, JSON.stringify(reminders, null, 2));
+    await addReminder(reminder, ctx.client);
 
     await ctx.reply({
       content: `⏰ 提醒已設定！時間：${timeInput}，提醒對象：${user.username}。`,
       flags: MessageFlags.Ephemeral,
     });
   } catch (error) {
-    console.error("❌ 設定提醒時出錯：", error);
+    console.error("❌ 設定提醒任務時出錯：", error);
     await ctx.reply({
-      content: "❌ 設定提醒時出錯，請稍後再試。",
+      content: "❌ 設定提醒任務時出錯，請稍後再試。",
       flags: MessageFlags.Ephemeral,
     });
   }
