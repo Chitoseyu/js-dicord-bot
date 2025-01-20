@@ -28,12 +28,14 @@ export const action = async (ctx) => {
 
     // 篩選當前伺服器的提醒
     const serverReminders = reminders.filter(
-      (reminder) => reminder.channelId === ctx.channelId
+      (reminder) =>
+        reminder.channelId === ctx.channelId &&
+        new Date(reminder.time) > new Date()
     );
 
     if (serverReminders.length === 0) {
       return await ctx.reply({
-        content: "❌ 當前沒有設定任何提醒任務，使用 /setnotify 新增提醒任務。",
+        content: "❌ 目前沒有提醒任務，使用 /setnotify 新增提醒任務。",
         flags: MessageFlags.Ephemeral,
       });
     }

@@ -27,7 +27,7 @@ export const action = async (ctx) => {
     const guildReplies = appStore.replies.get(guildId);
 
     const embed = new EmbedBuilder()
-      .setTitle("設置的回覆訊息")
+      .setTitle("💬 設置的回覆訊息")
       .setColor("#0099ff");
 
     guildReplies.forEach((response, keyword) => {

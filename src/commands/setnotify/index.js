@@ -64,10 +64,12 @@ export const action = async (ctx) => {
 
     await addReminder(reminder, ctx.client);
 
-    await ctx.reply({
+    const bot_reply = await ctx.reply({
       content: `⏰ 提醒已設定！時間：${timeInput}，提醒對象：${user.username}。`,
       flags: MessageFlags.Ephemeral,
     });
+
+    setTimeout(() => bot_reply.delete().catch(console.error), 3000);
   } catch (error) {
     console.error("❌ 設定提醒任務時出錯：", error);
     await ctx.reply({

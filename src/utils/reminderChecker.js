@@ -4,6 +4,20 @@ import path from "path";
 const REMINDERS_FILE = path.resolve("./reminders.json");
 
 let isChecking = false; // 用來記錄是否已檢查
+let isWriting = false; // 加鎖機制，防止檔案競爭
+
+// 防止檔案寫入競爭
+const safeWriteFile = async (filePath, data) => {
+  while (isWriting) {
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+  isWriting = true;
+  try {
+    await fs.writeFile(filePath, data);
+  } finally {
+    isWriting = false;
+  }
+};
 
 export const startReminderChecker = async (client) => {
   if (isChecking) return; // 防止重複啟動檢查
@@ -22,66 +36,49 @@ export const startReminderChecker = async (client) => {
       return;
     }
 
-    // 按時間排序提醒任務
-    reminders.sort((a, b) => new Date(a.time) - new Date(b.time));
-
     // 找到下一個需要執行的提醒
-    const nextReminder = reminders.find(
-      (reminder) => new Date(reminder.time) > now
+    const nowTime = now.getTime();
+    const remindersToExecute = reminders.filter(
+      (reminder) => new Date(reminder.time).getTime() >= nowTime
     );
 
-    if (!nextReminder) {
-      console.log("✅ 無需提醒，所有任務已完成。");
+    if (remindersToExecute.length === 0) {
+      //console.log("✅ 無需提醒，所有任務已完成。");
       isChecking = false;
       return;
     }
 
     // 計算與最近提醒的時間差
-    const reminderTime = new Date(nextReminder.time).getTime();
-    const currentTime = now.getTime();
-    const delay = Math.max(0, reminderTime - currentTime);
+    const reminderTime = new Date(remindersToExecute[0].time).getTime();
+    const delay = Math.max(0, reminderTime - nowTime);
 
-    console.log(
-      `⏰ 下一次提醒將在 ${new Intl.DateTimeFormat("zh-TW", {
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: false,
-        timeZone: "Asia/Taipei",
-      }).format(new Date(nextReminder.time))}，剩餘 ${Math.floor(
-        delay / 1000
-      )} 秒。`
-    );
+    // console.log(
+    //   `⏰ 下一次提醒將在 ${new Intl.DateTimeFormat("zh-TW", {
+    //     year: "numeric",
+    //     month: "2-digit",
+    //     day: "2-digit",
+    //     hour: "2-digit",
+    //     minute: "2-digit",
+    //     second: "2-digit",
+    //     hour12: false,
+    //     timeZone: "Asia/Taipei",
+    //   }).format(new Date(remindersToExecute[0].time))}，剩餘 ${Math.floor(
+    //     delay / 1000
+    //   )} 秒。`
+    // );
 
-    // 設置下一次檢查
     setTimeout(async () => {
-      // 發送提醒
-      const channel = client.channels.cache.get(nextReminder.channelId);
-      if (channel) {
-        await channel.send({
-          content: `<@${nextReminder.userId}> ${nextReminder.message}`,
-        });
+      // 發送所有到期的提醒
+      for (const reminder of remindersToExecute) {
+        const channel = client.channels.cache.get(reminder.channelId);
+        if (channel) {
+          await channel.send({
+            content: `<@${reminder.userId}> ${reminder.message}`,
+          });
+        }
       }
 
-      // 移除已完成的提醒
-      reminders = reminders.filter(
-        (reminder) =>
-          !(
-            reminder.userId === nextReminder.userId &&
-            reminder.channelId === nextReminder.channelId &&
-            reminder.time === nextReminder.time &&
-            reminder.message === nextReminder.message
-          )
-      );
-
-      // 更新檔案
-      await fs.writeFile(REMINDERS_FILE, JSON.stringify(reminders, null, 2));
-
       isChecking = false; // 檢查完成後重置狀態
-      // 再次檢查
       startReminderChecker(client);
     }, delay);
   } catch (error) {
@@ -93,19 +90,27 @@ export const startReminderChecker = async (client) => {
 export const addReminder = async (reminder, client) => {
   try {
     let reminders = [];
+    const now = new Date();
     try {
       const data = await fs.readFile(REMINDERS_FILE, "utf-8");
       reminders = JSON.parse(data);
     } catch {
-      // 檔案不存在，無提醒任務
+      // 檔案不存在
     }
 
+    // 移除過期提醒
+    reminders = reminders.filter((existingReminder) => {
+      const reminderTime = new Date(existingReminder.time);
+      return reminderTime > now; // 保留未過期的提醒
+    });
+
     reminders.push(reminder);
-    await fs.writeFile(REMINDERS_FILE, JSON.stringify(reminders, null, 2));
 
-    // console.log("✅ 新提醒已加入！");
+    reminders.sort((a, b) => new Date(a.time) - new Date(b.time));
 
-    startReminderChecker(client); // 動態啟動檢查
+    await safeWriteFile(REMINDERS_FILE, JSON.stringify(reminders, null, 2));
+
+    startReminderChecker(client);
   } catch (error) {
     console.error("❌ 無法新增提醒：", error);
   }
