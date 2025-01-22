@@ -5,6 +5,8 @@ const REMINDERS_FILE = path.resolve("./reminders.json");
 
 let isChecking = false; // 用來記錄是否已檢查
 let isWriting = false; // 加鎖機制，防止檔案競爭
+let currentTimeout = null; // 儲存當前的 setTimeout
+let nextReminderTime = null; // 記錄目前設置的最近提醒時間
 
 // 防止檔案寫入競爭
 const safeWriteFile = async (filePath, data) => {
@@ -20,7 +22,7 @@ const safeWriteFile = async (filePath, data) => {
 };
 
 export const startReminderChecker = async (client) => {
-  if (isChecking) return; // 防止重複啟動檢查
+  if (isChecking) return;
   isChecking = true;
   try {
     // 讀取提醒任務
@@ -36,51 +38,89 @@ export const startReminderChecker = async (client) => {
       return;
     }
 
-    // 找到下一個需要執行的提醒
-    const nowTime = now.getTime();
-    const remindersToExecute = reminders.filter(
-      (reminder) => new Date(reminder.time).getTime() >= nowTime
+    reminders = reminders.filter(
+      (reminder) => new Date(reminder.time).getTime() > now.getTime()
     );
+    reminders.sort((a, b) => new Date(a.time) - new Date(b.time));
 
-    if (remindersToExecute.length === 0) {
-      //console.log("✅ 無需提醒，所有任務已完成。");
+    if (reminders.length === 0) {
+      // 沒有未來提醒
+      nextReminderTime = null;
+      clearTimeout(currentTimeout);
+      currentTimeout = null;
       isChecking = false;
       return;
     }
 
-    // 計算與最近提醒的時間差
-    const reminderTime = new Date(remindersToExecute[0].time).getTime();
-    const delay = Math.max(0, reminderTime - nowTime);
+    // 找到最近的提醒
+    const closestReminderTime = new Date(reminders[0].time).getTime();
 
-    // console.log(
-    //   `⏰ 下一次提醒將在 ${new Intl.DateTimeFormat("zh-TW", {
-    //     year: "numeric",
-    //     month: "2-digit",
-    //     day: "2-digit",
-    //     hour: "2-digit",
-    //     minute: "2-digit",
-    //     second: "2-digit",
-    //     hour12: false,
-    //     timeZone: "Asia/Taipei",
-    //   }).format(new Date(remindersToExecute[0].time))}，剩餘 ${Math.floor(
-    //     delay / 1000
-    //   )} 秒。`
-    // );
+    if (nextReminderTime === null || closestReminderTime !== nextReminderTime) {
+      // 更新最近提醒時間
+      nextReminderTime = closestReminderTime;
 
-    setTimeout(async () => {
-      // 發送所有到期的提醒
-      for (const reminder of remindersToExecute) {
-        const channel = client.channels.cache.get(reminder.channelId);
-        if (channel) {
-          await channel.send({
-            content: `<@${reminder.userId}> ${reminder.message}`,
-          });
-        }
+      if (currentTimeout) {
+        clearTimeout(currentTimeout);
+        currentTimeout = null;
       }
 
-      isChecking = false; // 檢查完成後重置狀態
-      startReminderChecker(client);
-    }, delay);
+      // 計算延遲時間
+      const delay = Math.max(0, closestReminderTime - now.getTime());
+
+      // console.log(
+      //   `⏰ 下一次提醒將在 ${new Intl.DateTimeFormat("zh-TW", {
+      //     year: "numeric",
+      //     month: "2-digit",
+      //     day: "2-digit",
+      //     hour: "2-digit",
+      //     minute: "2-digit",
+      //     second: "2-digit",
+      //     hour12: false,
+      //     timeZone: "Asia/Taipei",
+      //   }).format(new Date(closestReminderTime))}，剩餘 ${Math.floor(
+      //     delay / 1000
+      //   )} 秒。`
+      // );
+
+      // 設置新的計時器
+      currentTimeout = setTimeout(async () => {
+        const data = await fs.readFile(REMINDERS_FILE, "utf-8");
+        let reminders = JSON.parse(data);
+
+        // 發送所有到期提醒
+        const currentTime = new Date().getTime();
+        const dueReminders = reminders.filter(
+          (reminder) => new Date(reminder.time).getTime() <= currentTime
+        );
+
+        for (const reminder of dueReminders) {
+          const channel = client.channels.cache.get(reminder.channelId);
+          if (channel) {
+            await channel.send({
+              content: `<@${reminder.userId}> ${reminder.message}`,
+            });
+          }
+        }
+        // 移除已執行的提醒
+        reminders = reminders.filter(
+          (reminder) =>
+            !dueReminders.some(
+              (executed) =>
+                reminder.userId === executed.userId &&
+                reminder.channelId === executed.channelId &&
+                reminder.time === executed.time &&
+                reminder.message === executed.message
+            )
+        );
+        // 更新檔案
+        await safeWriteFile(REMINDERS_FILE, JSON.stringify(reminders, null, 2));
+        isChecking = false;
+        startReminderChecker(client); // 繼續檢查下一個提醒
+      }, delay);
+    } else {
+      // console.log("沒有更新提醒時間");
+      isChecking = false;
+    }
   } catch (error) {
     console.error("❌ 檢查提醒時出錯：", error);
     isChecking = false;
@@ -98,18 +138,18 @@ export const addReminder = async (reminder, client) => {
       // 檔案不存在
     }
 
-    // 移除過期提醒
-    reminders = reminders.filter((existingReminder) => {
-      const reminderTime = new Date(existingReminder.time);
-      return reminderTime > now; // 保留未過期的提醒
-    });
+    // 清理過期提醒
+    reminders = reminders.filter(
+      (existingReminder) =>
+        new Date(existingReminder.time).getTime() > now.getTime()
+    );
 
     reminders.push(reminder);
-
     reminders.sort((a, b) => new Date(a.time) - new Date(b.time));
 
     await safeWriteFile(REMINDERS_FILE, JSON.stringify(reminders, null, 2));
 
+    isChecking = false;
     startReminderChecker(client);
   } catch (error) {
     console.error("❌ 無法新增提醒：", error);
