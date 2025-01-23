@@ -31,9 +31,16 @@ export const useAppStore = defineStore("app", {
     saveReplies() {
       try {
         const data = Object.fromEntries(
-          [...this.replies.entries()].map(([guildId, keywords]) => [
+          [...this.replies.entries()].map(([guildId, replies]) => [
             guildId,
-            Object.fromEntries(keywords),
+            Object.fromEntries(
+              [...replies.entries()].map(
+                ([uniqueId, { keyword, response }]) => [
+                  uniqueId,
+                  { keyword, response },
+                ]
+              )
+            ),
           ])
         );
         fs.writeFileSync("./replies.json", JSON.stringify(data, null, 2));

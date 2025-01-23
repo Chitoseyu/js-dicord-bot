@@ -4,10 +4,11 @@ import {
   MessageFlags,
 } from "discord.js";
 import { useAppStore } from "@/store/app";
+import { v4 as uuidv4 } from "uuid";
 
 export const command = new SlashCommandBuilder()
   .setName("setrpy")
-  .setDescription("設定關鍵字的回覆訊息")
+  .setDescription("設定關鍵字回應")
   .setDefaultMemberPermissions(PermissionFlagsBits.UseApplicationCommands)
   .setDMPermission(false)
   .addStringOption((option) =>
@@ -24,24 +25,23 @@ export const action = async (ctx) => {
     const response = ctx.options.getString("response");
 
     const appStore = useAppStore();
-    // 檢查該伺服器是否有回覆設定，若無則創建
     if (!appStore.replies.has(guildId)) {
       appStore.replies.set(guildId, new Map());
     }
 
-    // 儲存回覆設定
     const guildReplies = appStore.replies.get(guildId);
-    guildReplies.set(keyword, response);
+    const uniqueId = uuidv4().replace(/-/g, "").substring(0, 6);
+    guildReplies.set(uniqueId, { keyword, response });
 
     appStore.saveReplies();
 
     await ctx.reply({
-      content: `✅ 設定回覆成功！`,
+      content: `✅ 設定回應成功！`,
       flags: MessageFlags.Ephemeral,
     });
   } catch (error) {
     await ctx.reply({
-      content: "❌ 設定回覆失敗，請稍後再試。",
+      content: "❌ 設定回應失敗，請稍後再試。",
       flags: MessageFlags.Ephemeral,
     });
   }

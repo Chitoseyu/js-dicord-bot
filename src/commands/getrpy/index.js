@@ -8,7 +8,7 @@ import { useAppStore } from "@/store/app";
 
 export const command = new SlashCommandBuilder()
   .setName("getrpy")
-  .setDescription("查看關鍵字的回覆訊息")
+  .setDescription("查看關鍵字的自訂回應")
   .setDefaultMemberPermissions(PermissionFlagsBits.UseApplicationCommands)
   .setDMPermission(false);
 
@@ -20,28 +20,38 @@ export const action = async (ctx) => {
     const guildId = ctx.guildId;
     const appStore = useAppStore();
 
-    // 確認該伺服器是否有回覆設定
+    // 確認該伺服器是否有設定
     if (!appStore.replies.has(guildId)) {
-      return await ctx.editReply("❌ 尚未設定任何回覆訊息！");
+      return await ctx.editReply("❌ 尚未設定任何回應！");
     }
     const guildReplies = appStore.replies.get(guildId);
 
-    const embed = new EmbedBuilder()
-      .setTitle("💬 設置的回覆訊息")
-      .setColor("#0099ff");
+    const embed = new EmbedBuilder();
 
-    guildReplies.forEach((response, keyword) => {
+    let responseText = "";
+
+    guildReplies.forEach((reply, id) => {
+      responseText += `\`#${id}\`${reply.keyword} 💬 ${reply.response}\n`;
+    });
+
+    if (responseText.trim()) {
       embed.addFields({
-        name: `\`${keyword}\``,
-        value: `${response}`,
+        name: "🤖 自訂回應",
+        value: responseText,
         inline: false,
       });
-    });
+    } else {
+      embed.addFields({
+        name: "🤖 自訂回應",
+        value: "尚未設定回應",
+        inline: false,
+      });
+    }
 
     await ctx.editReply({ embeds: [embed], flags: MessageFlags.Ephemeral });
   } catch (error) {
     await ctx.reply({
-      content: "❌ 查詢回覆訊息時出錯，請稍後再試。",
+      content: "❌ 查詢自訂回應時出錯，請稍後再試",
       flags: MessageFlags.Ephemeral,
     });
   }
