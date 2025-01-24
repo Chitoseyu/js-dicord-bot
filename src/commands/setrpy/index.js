@@ -1,6 +1,7 @@
 import {
   SlashCommandBuilder,
   PermissionFlagsBits,
+  EmbedBuilder,
   MessageFlags,
 } from "discord.js";
 import { useAppStore } from "@/store/app";
@@ -18,6 +19,14 @@ export const command = new SlashCommandBuilder()
     option.setName("response").setDescription("回應內容").setRequired(true)
   );
 
+const generateUniqueId = (existingIds) => {
+  let uniqueId;
+  do {
+    uniqueId = uuidv4().replace(/-/g, "").substring(0, 6); // 生成6位數
+  } while (existingIds.has(uniqueId)); // 已存在則重產生
+  return uniqueId;
+};
+
 export const action = async (ctx) => {
   try {
     const guildId = ctx.guildId;
@@ -30,14 +39,27 @@ export const action = async (ctx) => {
     }
 
     const guildReplies = appStore.replies.get(guildId);
-    const uniqueId = uuidv4().replace(/-/g, "").substring(0, 6);
+    // 已存在的ID
+    const existingIds = new Set(guildReplies.keys());
+    // 避免ID衝突
+    const uniqueId = generateUniqueId(existingIds);
+
     guildReplies.set(uniqueId, { keyword, response });
 
     appStore.saveReplies();
 
     await ctx.reply({
-      content: `✅ 設定回應成功！`,
-      flags: MessageFlags.Ephemeral,
+      embeds: [
+        new EmbedBuilder()
+          .setTitle("新自訂回應")
+          .setColor("#00FF00")
+          .addFields(
+            { name: "ID", value: `\`${uniqueId}\``, inline: false },
+            { name: "關鍵字", value: `\`${keyword}\``, inline: false },
+            { name: "回應", value: response, inline: false }
+          ),
+      ],
+      // flags: MessageFlags.Ephemeral,
     });
   } catch (error) {
     await ctx.reply({

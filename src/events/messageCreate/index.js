@@ -20,7 +20,7 @@ export const action = async (message) => {
   for (const [id, reply] of guildReplies.entries()) {
     if (reply.keyword === userMessage) {
       await message.channel.send(reply.response);
-      break; // 發現匹配後立即退出迴圈
+      break;
     }
   }
 };

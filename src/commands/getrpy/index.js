@@ -2,9 +2,14 @@ import {
   SlashCommandBuilder,
   PermissionFlagsBits,
   EmbedBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
   MessageFlags,
 } from "discord.js";
 import { useAppStore } from "@/store/app";
+
+const ITEMS_PER_PAGE = 10; // 指令每頁顯示數量
 
 export const command = new SlashCommandBuilder()
   .setName("getrpy")
@@ -26,31 +31,91 @@ export const action = async (ctx) => {
     }
     const guildReplies = appStore.replies.get(guildId);
 
-    const embed = new EmbedBuilder();
-
-    let responseText = "";
-
-    guildReplies.forEach((reply, id) => {
-      responseText += `\`#${id}\`${reply.keyword} 💬 ${reply.response}\n`;
-    });
-
-    if (responseText.trim()) {
-      embed.addFields({
-        name: "🤖 自訂回應",
-        value: responseText,
-        inline: false,
-      });
-    } else {
-      embed.addFields({
-        name: "🤖 自訂回應",
-        value: "尚未設定回應",
-        inline: false,
-      });
+    // 分頁處理資料
+    const paginatedData = [];
+    const allEntries = [...guildReplies.entries()];
+    for (let i = 0; i < allEntries.length; i += ITEMS_PER_PAGE) {
+      paginatedData.push(allEntries.slice(i, i + ITEMS_PER_PAGE));
     }
 
-    await ctx.editReply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+    let currentPage = 0;
+
+    const createEmbed = (page) => {
+      const embed = new EmbedBuilder()
+        .setTitle("🤖 自訂回應")
+        .setColor("#0099ff");
+
+      const pageData = paginatedData[page] || [];
+      let responseText = "";
+
+      pageData.forEach(([id, reply]) => {
+        responseText += `\`${id}\` ${reply.keyword} 💬 ${reply.response}\n`;
+      });
+
+      embed.setDescription(responseText || "尚未設定回應");
+      embed.setFooter({ text: `${page + 1}/${paginatedData.length}` });
+      return embed;
+    };
+
+    // 初始化按鈕
+    const createButtons = (page) => {
+      return new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId("prev")
+          .setLabel("⬅️")
+          .setStyle(ButtonStyle.Primary)
+          .setDisabled(page === 0), // 第一頁禁用
+        new ButtonBuilder()
+          .setCustomId("next")
+          .setLabel("➡️")
+          .setStyle(ButtonStyle.Primary)
+          .setDisabled(page === paginatedData.length - 1) // 最後一頁禁用
+      );
+    };
+
+    // 回應初始 Embed 和按鈕
+    await ctx.editReply({
+      embeds: [createEmbed(currentPage)],
+      components: [createButtons(currentPage)],
+    });
+
+    const collector = ctx.channel.createMessageComponentCollector({
+      filter: (interaction) =>
+        interaction.user.id === ctx.user.id &&
+        ["prev", "next"].includes(interaction.customId),
+      time: 60000, // 設置過期時間（60 秒）
+    });
+
+    collector.on("collect", async (interaction) => {
+      try {
+        // 更新頁數
+        if (interaction.customId === "prev" && currentPage > 0) {
+          currentPage--;
+        } else if (
+          interaction.customId === "next" &&
+          currentPage < paginatedData.length - 1
+        ) {
+          currentPage++;
+        }
+
+        // 回應互動，更新 Embed 和按鈕
+        await interaction.update({
+          embeds: [createEmbed(currentPage)],
+          components: [createButtons(currentPage)],
+        });
+      } catch (error) {
+        console.error("Error updating interaction:", error);
+      }
+    });
+
+    collector.on("end", async () => {
+      // 互動過期禁用按鈕
+      await ctx.editReply({
+        components: [],
+      });
+    });
   } catch (error) {
-    await ctx.reply({
+    await ctx.editReply({
       content: "❌ 查詢自訂回應時出錯，請稍後再試",
       flags: MessageFlags.Ephemeral,
     });
