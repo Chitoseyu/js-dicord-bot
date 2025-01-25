@@ -10,6 +10,8 @@ export const command = new SlashCommandBuilder()
   .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
   .setDMPermission(false);
 
+command.devOnly = true;
+
 export const action = async (ctx) => {
   try {
     const inviteURL = ctx.client.generateInvite({

@@ -6,6 +6,8 @@ export const command = new SlashCommandBuilder()
   .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
   .setDMPermission(false);
 
+command.devOnly = true;
+
 export const action = async (ctx) => {
   const sent = await ctx.reply({
     content: "正在計算延遲 ......",

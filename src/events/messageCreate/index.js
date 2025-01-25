@@ -17,10 +17,13 @@ export const action = async (message) => {
 
   const userMessage = message.content.toLowerCase();
 
-  for (const [id, reply] of guildReplies.entries()) {
-    if (reply.keyword === userMessage) {
-      await message.channel.send(reply.response);
-      break;
-    }
+  const matchingReplies = [...guildReplies.values()].filter(
+    (reply) => reply.keyword === userMessage
+  );
+
+  if (matchingReplies.length > 0) {
+    const randomReply =
+      matchingReplies[Math.floor(Math.random() * matchingReplies.length)];
+    await message.channel.send(randomReply.response);
   }
 };
