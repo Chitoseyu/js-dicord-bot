@@ -59,7 +59,7 @@ export const action = async (ctx) => {
     // 回應結果
     const totalDeleted = recentMessages.length + oldMessages.length;
     const botReply = await ctx.reply({
-      content: `✅ 已成功刪除 ${totalDeleted} 筆訊息！`,
+      content: `✅ 已成功刪除 ${totalDeleted} 筆訊息( 3 秒後自動刪除)`,
     });
     setTimeout(() => botReply.delete().catch(console.error), 3000);
   } catch (error) {
