@@ -3,6 +3,7 @@ import {
   PermissionFlagsBits,
   MessageFlags,
 } from "discord.js";
+import { logAction } from "@/utils/logHelper";
 
 export const command = new SlashCommandBuilder()
   .setName("delete")
@@ -17,9 +18,13 @@ export const command = new SlashCommandBuilder()
   );
 
 export const action = async (ctx) => {
+  // 記錄使用者訊息到日誌檔案
+  const guildName = ctx.guild.name; // 群組名稱
+  const userName = ctx.member?.displayName || ctx.user.username; // 用戶名稱
+  const nickname = ctx.member.nickname || "無"; // 群組暱稱
+  let logMessage = "";
   try {
     const count = ctx.options.getInteger("count");
-
     if (count < 1 || count > 100) {
       return await ctx.reply({
         content: "❌ 請輸入 1 到 100 之間的訊息數量。",
@@ -58,11 +63,17 @@ export const action = async (ctx) => {
 
     // 回應結果
     const totalDeleted = recentMessages.length + oldMessages.length;
+
+    logMessage = `刪除訊息 ${totalDeleted} 筆，14 天內 ${recentMessages.length} 筆，超過 14 天 ${oldMessages.length} 筆`;
+    logAction("success", "delete", guildName, userName, nickname, logMessage);
+
     const botReply = await ctx.reply({
       content: `✅ 已成功刪除 ${totalDeleted} 筆訊息( 3 秒後自動刪除)`,
     });
     setTimeout(() => botReply.delete().catch(console.error), 3000);
   } catch (error) {
+    logMessage = `刪除訊息錯誤，${error.message}`;
+    logAction("error", "delete", guildName, userName, nickname, logMessage);
     await ctx.reply({
       content: "❌ 刪除訊息失敗",
       flags: MessageFlags.Ephemeral,
