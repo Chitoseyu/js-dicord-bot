@@ -6,6 +6,7 @@ import {
 } from "discord.js";
 import { useAppStore } from "@/store/app";
 import { v4 as uuidv4 } from "uuid";
+import { logAction } from "@/utils/logHelper";
 
 export const command = new SlashCommandBuilder()
   .setName("setrpy")
@@ -28,6 +29,11 @@ const generateUniqueId = (existingIds) => {
 };
 
 export const action = async (ctx) => {
+  // 記錄使用者訊息到日誌檔案
+  const guildName = ctx.guild.name; // 群組名稱
+  const userName = ctx.member?.displayName || ctx.user.username; // 用戶名稱
+  const nickname = ctx.member.nickname || "無"; // 群組暱稱
+  let logMessage = "";
   try {
     const guildId = ctx.guildId;
     const keyword = ctx.options.getString("keyword").toLowerCase();
@@ -48,6 +54,9 @@ export const action = async (ctx) => {
 
     appStore.saveReplies();
 
+    logMessage = `自訂回應設定，ID=${uniqueId}, 關鍵字=${keyword}, 回應=${response}`;
+    logAction("success", "setrpy", guildName, userName, nickname, logMessage);
+
     await ctx.reply({
       embeds: [
         new EmbedBuilder()
@@ -62,6 +71,8 @@ export const action = async (ctx) => {
       // flags: MessageFlags.Ephemeral,
     });
   } catch (error) {
+    logMessage = `自訂回應設定錯誤，${error.message}`;
+    logAction("error", "setrpy", guildName, userName, nickname, logMessage);
     await ctx.reply({
       content: "❌ 設定回應失敗，請稍後再試。",
       flags: MessageFlags.Ephemeral,
