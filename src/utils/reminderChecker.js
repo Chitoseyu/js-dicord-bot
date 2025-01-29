@@ -20,7 +20,18 @@ const safeWriteFile = async (filePath, data) => {
     isWriting = false;
   }
 };
-
+// 取得最新的 ID
+const getNextId = async () => {
+  try {
+    const data = await fs.readFile(REMINDERS_FILE, "utf-8");
+    const reminders = JSON.parse(data);
+    const lastId =
+      reminders.length > 0 ? Math.max(...reminders.map((r) => r.id)) : 0;
+    return lastId + 1;
+  } catch {
+    return 1;
+  }
+};
 export const startReminderChecker = async (client) => {
   if (isChecking) return;
   isChecking = true;
@@ -104,13 +115,7 @@ export const startReminderChecker = async (client) => {
         // 移除已執行的提醒
         reminders = reminders.filter(
           (reminder) =>
-            !dueReminders.some(
-              (executed) =>
-                reminder.userId === executed.userId &&
-                reminder.channelId === executed.channelId &&
-                reminder.time === executed.time &&
-                reminder.message === executed.message
-            )
+            !dueReminders.some((executed) => reminder.id === executed.id)
         );
         // 更新檔案
         await safeWriteFile(REMINDERS_FILE, JSON.stringify(reminders, null, 2));
@@ -143,6 +148,8 @@ export const addReminder = async (reminder, client) => {
       (existingReminder) =>
         new Date(existingReminder.time).getTime() > now.getTime()
     );
+    reminder.id = await getNextId();
+    reminder.createdAt = new Date().toISOString();
 
     reminders.push(reminder);
     reminders.sort((a, b) => new Date(a.time) - new Date(b.time));

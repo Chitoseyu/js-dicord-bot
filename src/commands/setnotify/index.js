@@ -16,7 +16,9 @@ export const command = new SlashCommandBuilder()
   .addStringOption((option) =>
     option
       .setName("time")
-      .setDescription("提醒時間 (格式: MM-DD HH:mm，例如 01-18 13:30)")
+      .setDescription(
+        "當前月份提醒時間(29號 下午 1 點 30 分提醒，格式：29 13:30)"
+      )
       .setRequired(true)
   )
   .addStringOption((option) =>
@@ -31,20 +33,29 @@ export const action = async (ctx) => {
 
     // 驗證時間格式
     const TIME_FORMAT_REGEX =
-      /^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01]) ([01]\d|2[0-3]):([0-5]\d)$/;
+      /^(0[1-9]|[12][0-9]|3[01]) ([01]\d|2[0-3]):([0-5]\d)$/;
 
     if (!TIME_FORMAT_REGEX.test(timeInput)) {
       return await ctx.reply({
         content:
-          "❌ 提醒時間格式無效，請使用格式 MM-DD HH:mm，例如 01-18 13:30。",
+          "❌ 提醒時間格式無效，請使用格式：日期 提醒時間，例如 29 13:30。",
         flags: MessageFlags.Ephemeral,
       });
     }
     // 獲取當前年份，並轉換為完整日期
-    const [month, day, hour, minute] = timeInput.split(/[- :]/).map(Number);
+    const [day, hour, minute] = timeInput.split(/[: ]/).map(Number);
     const now = new Date();
     const year = now.getFullYear();
-    const reminderTime = new Date(year, month - 1, day, hour, minute);
+    const month = now.getMonth(); // 當前月份
+    const reminderTime = new Date(year, month, day, hour, minute);
+
+    // 檢查日期是否有效
+    if (reminderTime.getMonth() !== month) {
+      return await ctx.reply({
+        content: "❌ 輸入的日期超出當月份範圍，請重新輸入。",
+        flags: MessageFlags.Ephemeral,
+      });
+    }
 
     // 驗證時間是否為未來
     if (reminderTime <= now) {
@@ -64,8 +75,16 @@ export const action = async (ctx) => {
 
     await addReminder(reminder, ctx.client);
 
+    const formattedTime = `${year}-${String(month + 1).padStart(
+      2,
+      "0"
+    )}-${String(day).padStart(2, "0")} ${String(hour).padStart(
+      2,
+      "0"
+    )}:${String(minute).padStart(2, "0")}`;
+
     const bot_reply = await ctx.reply({
-      content: `⏰ 提醒已設定！時間：${timeInput}，提醒對象：${user.username}。`,
+      content: `⏰ 提醒已設定！時間：${formattedTime}，提醒對象：${user.username}。`,
       flags: MessageFlags.Ephemeral,
     });
 
