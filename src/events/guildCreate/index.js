@@ -17,6 +17,10 @@ export const action = async (guild) => {
 
   for (const file of command_files) {
     const cmd = await import(file);
+    // 區分是否為開發用指令
+    if (cmd.command.devOnly === undefined) {
+      cmd.command.devOnly = false;
+    }
     commands.push(cmd.command);
     actions.set(cmd.command.name, cmd.action);
   }
@@ -25,9 +29,14 @@ export const action = async (guild) => {
   try {
     const rest = new REST().setToken(process.env.TOKEN);
 
+    const isTestGuild = process.env.TEST_GUILD_ID === guild.id;
+    const filteredCommands = isTestGuild
+      ? commands
+      : commands.filter((cmd) => cmd.devOnly !== true);
+
     await rest.put(
       Routes.applicationGuildCommands(process.env.APP_ID, guild.id),
-      { body: commands }
+      { body: filteredCommands }
     );
     // console.log(`在伺服器 ${guild.name} 註冊了 Slash 指令`);
   } catch (error) {
