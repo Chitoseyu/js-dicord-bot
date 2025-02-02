@@ -1,5 +1,5 @@
 import { Events } from "discord.js";
-
+import { getServerSettings } from "@/utils/serverSetting";
 export const event = {
   name: Events.GuildMemberAdd,
   once: false,
@@ -8,6 +8,9 @@ export const event = {
 export const action = async (member) => {
   console.log(`${member.user.tag} 加入了群組 ${member.guild.name}`);
 
+  const settings = getServerSettings(member.guild.id);
+  if (!settings || !settings.enabled) return;
+
   const defaultChannel = member.guild.systemChannel;
 
   if (!defaultChannel) {
@@ -15,7 +18,10 @@ export const action = async (member) => {
     return;
   }
 
-  const welcomeMessage = `🎉 歡迎新成員 <@${member.id}> 加入！`;
+  const welcomeMessage = settings.joinMessage.replace(
+    "{user}",
+    `<@${member.id}>`
+  );
 
   try {
     // 發送歡迎訊息到預設頻道

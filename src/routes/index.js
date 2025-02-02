@@ -24,6 +24,7 @@ router.get("/", (req, res) => {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Bot 資訊</title>
+        <link rel="icon" href="https://i.imgur.com/5gXfAdD.png" type="image/x-icon">
         <style>
           body {
             font-family: Arial, sans-serif;

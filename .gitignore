@@ -3,4 +3,5 @@ yarn.lock
 .env
 replies.json
 reminders.json
+settings.json
 src/logs
