@@ -30,7 +30,7 @@ export const action = async (ctx) => {
     const guildReplies = appStore.replies.get(guildId);
     if (!guildReplies || !guildReplies.has(id)) {
       await ctx.reply({
-        content: `❌ 無法找到 ID 為 \`${id}\` 的自訂回應`,
+        content: `❌ 找不到 ID 為 \`${id}\` 的自訂回應`,
         flags: MessageFlags.Ephemeral,
       });
       return;

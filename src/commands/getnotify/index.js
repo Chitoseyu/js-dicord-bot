@@ -4,27 +4,18 @@ import {
   EmbedBuilder,
   MessageFlags,
 } from "discord.js";
-import fs from "fs/promises";
-import path from "path";
-
-const REMINDERS_FILE = path.resolve("./reminders.json");
+import { getReminder, formatReminderTime } from "@/utils/reminderChecker";
 
 export const command = new SlashCommandBuilder()
   .setName("getnotify")
-  .setDescription("顯示目前的提醒任務")
+  .setDescription("顯示提醒任務")
   .setDefaultMemberPermissions(PermissionFlagsBits.UseApplicationCommands)
   .setDMPermission(false);
 
 export const action = async (ctx) => {
   try {
     // 讀取提醒數據
-    let reminders = [];
-    try {
-      const data = await fs.readFile(REMINDERS_FILE, "utf-8");
-      reminders = JSON.parse(data);
-    } catch {
-      // 檔案不存在，忽略
-    }
+    const reminders = await getReminder();
 
     // 篩選當前伺服器的提醒
     const serverReminders = reminders.filter(
@@ -35,25 +26,23 @@ export const action = async (ctx) => {
 
     if (serverReminders.length === 0) {
       return await ctx.reply({
-        content: "❌ 目前沒有提醒任務，使用 /setnotify 新增提醒任務。",
+        content: "❌ 沒有提醒任務，使用 /setnotify 新增提醒任務。",
         flags: MessageFlags.Ephemeral,
       });
     }
 
     // 構建 Embed
     const embed = new EmbedBuilder()
-      .setTitle("📋 目前的提醒任務")
+      .setTitle("📋 提醒任務")
       .setColor("#00AAFF")
       .setFooter({ text: "使用 /setnotify 新增提醒任務" });
 
     serverReminders.forEach((reminder, index) => {
+      let reminder_time = formatReminderTime(reminder.time);
+
       embed.addFields({
         name: `#${index + 1} 任務`,
-        value: `**用戶**: <@${reminder.userId}>\n**時間**: ${new Date(
-          reminder.time
-        ).toLocaleString("zh-TW", { timeZone: "Asia/Taipei" })}\n**訊息**: ${
-          reminder.message
-        }`,
+        value: `**ID**: ${reminder.id}\n**對象**: <@${reminder.userId}>\n**時間**: ${reminder_time}\n**內容**: ${reminder.message}`,
       });
     });
 

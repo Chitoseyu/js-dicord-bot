@@ -32,6 +32,22 @@ const getNextId = async () => {
     return 1;
   }
 };
+
+export const formatReminderTime = (timeData) => {
+  let format_time = "";
+  try {
+    format_time = `${new Date(timeData).getFullYear()}/${
+      new Date(timeData).getMonth() + 1
+    }/${new Date(timeData).getDate()} ${
+      new Date(timeData).getHours() >= 12 ? "下午" : "上午"
+    } ${new Date(timeData).getHours() % 12 || 12}:${String(
+      new Date(timeData).getMinutes()
+    ).padStart(2, "0")}`;
+  } catch (error) {
+    console.error("❌ 無法格式化時間：", error);
+  }
+  return format_time;
+};
 export const startReminderChecker = async (client) => {
   if (isChecking) return;
   isChecking = true;
@@ -60,6 +76,7 @@ export const startReminderChecker = async (client) => {
       clearTimeout(currentTimeout);
       currentTimeout = null;
       isChecking = false;
+      // console.log("沒有未來提醒");
       return;
     }
 
@@ -159,6 +176,38 @@ export const addReminder = async (reminder, client) => {
     isChecking = false;
     startReminderChecker(client);
   } catch (error) {
-    console.error("❌ 無法新增提醒：", error);
+    console.error("❌ 無法新增提醒任務：", error);
+  }
+};
+export const deleteReminder = async (reminderId, client) => {
+  try {
+    const remindersData = await fs.readFile(REMINDERS_FILE, "utf-8");
+    const reminders = JSON.parse(remindersData);
+
+    const index = reminders.findIndex((reminder) => reminder.id === reminderId);
+
+    if (index === -1) {
+      return [];
+    }
+    const [deletedReminder] = reminders.splice(index, 1);
+
+    await safeWriteFile(REMINDERS_FILE, JSON.stringify(reminders, null, 2));
+
+    isChecking = false;
+    startReminderChecker(client); // 繼續檢查下一個提醒
+
+    return deletedReminder;
+  } catch (error) {
+    console.error("❌ 無法刪除提醒任務：", error);
+  }
+};
+export const getReminder = async () => {
+  let reminders = [];
+  try {
+    const data = await fs.readFile(REMINDERS_FILE, "utf-8");
+    reminders = JSON.parse(data);
+    return reminders;
+  } catch (error) {
+    console.error("❌ 無法取得提醒任務：", error);
   }
 };

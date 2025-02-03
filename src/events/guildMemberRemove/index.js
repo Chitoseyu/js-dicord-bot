@@ -14,7 +14,7 @@ export const action = async (member) => {
   const defaultChannel = member.guild.systemChannel;
 
   if (!defaultChannel) {
-    console.log("找不到伺服器的預設頻道，無法發送訊息。");
+    console.log(`找不到 ${member.guild.name} 的預設頻道，無法發送訊息。`);
     return;
   }
 
