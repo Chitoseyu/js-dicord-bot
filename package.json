@@ -8,6 +8,7 @@
     "dev": "vite-node src/main.js"
   },
   "dependencies": {
+    "better-sqlite3": "^11.8.1",
     "discord.js": "^14.17.3",
     "dotenv": "^16.0.3",
     "express": "^4.21.2",

@@ -5,9 +5,15 @@ import dotenv from "dotenv";
 import { useAppStore } from "@/store/app";
 import { loadCommands, loadEvents } from "@/core/loader";
 import statusRoutes from "./routes/index.js";
+import { initDatabase } from "@/database/initDB.js";
 
 vueInit();
 dotenv.config();
+
+(async () => {
+  const db = await initDatabase();
+  global.db = db; // 存到 global 讓其他模組可用
+})();
 
 const client = new Client({
   intents: [

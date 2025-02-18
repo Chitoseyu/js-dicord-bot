@@ -18,11 +18,13 @@ export const action = async (ctx) => {
     const reminders = await getReminder();
 
     // 篩選當前伺服器的提醒
-    const serverReminders = reminders.filter(
-      (reminder) =>
-        reminder.channelId === ctx.channelId &&
-        new Date(reminder.time) > new Date()
-    );
+    const serverReminders = reminders
+      .filter(
+        (reminder) =>
+          reminder.channelId === ctx.channelId &&
+          new Date(reminder.time) > new Date()
+      )
+      .sort((a, b) => new Date(a.time) - new Date(b.time));
 
     if (serverReminders.length === 0) {
       return await ctx.reply({

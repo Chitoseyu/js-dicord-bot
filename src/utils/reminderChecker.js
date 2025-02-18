@@ -1,37 +1,6 @@
-import fs from "fs/promises";
-import path from "path";
-
-const REMINDERS_FILE = path.resolve("./reminders.json");
-
 let isChecking = false; // 用來記錄是否已檢查
-let isWriting = false; // 加鎖機制，防止檔案競爭
 let currentTimeout = null; // 儲存當前的 setTimeout
 let nextReminderTime = null; // 記錄目前設置的最近提醒時間
-
-// 防止檔案寫入競爭
-const safeWriteFile = async (filePath, data) => {
-  while (isWriting) {
-    await new Promise((resolve) => setTimeout(resolve, 10));
-  }
-  isWriting = true;
-  try {
-    await fs.writeFile(filePath, data);
-  } finally {
-    isWriting = false;
-  }
-};
-// 取得最新的 ID
-const getNextId = async () => {
-  try {
-    const data = await fs.readFile(REMINDERS_FILE, "utf-8");
-    const reminders = JSON.parse(data);
-    const lastId =
-      reminders.length > 0 ? Math.max(...reminders.map((r) => r.id)) : 0;
-    return lastId + 1;
-  } catch {
-    return 1;
-  }
-};
 
 export const formatReminderTime = (timeData) => {
   let format_time = "";
@@ -55,15 +24,10 @@ export const startReminderChecker = async (client) => {
     // 讀取提醒任務
     let reminders = [];
     const now = new Date();
-
-    try {
-      const data = await fs.readFile(REMINDERS_FILE, "utf-8");
-      reminders = JSON.parse(data);
-    } catch {
-      // 無提醒任務
-      isChecking = false;
-      return;
-    }
+    const data = await global.db
+      .prepare("SELECT * FROM reminders WHERE time > ? ORDER BY time ASC")
+      .all(now.toISOString());
+    reminders = data;
 
     reminders = reminders.filter(
       (reminder) => new Date(reminder.time).getTime() > now.getTime()
@@ -71,12 +35,12 @@ export const startReminderChecker = async (client) => {
     reminders.sort((a, b) => new Date(a.time) - new Date(b.time));
 
     if (reminders.length === 0) {
+      // console.log("沒有未來提醒");
       // 沒有未來提醒
       nextReminderTime = null;
       clearTimeout(currentTimeout);
       currentTimeout = null;
       isChecking = false;
-      // console.log("沒有未來提醒");
       return;
     }
 
@@ -112,8 +76,8 @@ export const startReminderChecker = async (client) => {
 
       // 設置新的計時器
       currentTimeout = setTimeout(async () => {
-        const data = await fs.readFile(REMINDERS_FILE, "utf-8");
-        let reminders = JSON.parse(data);
+        const data = await global.db.prepare("SELECT * FROM reminders").all();
+        let reminders = data;
 
         // 發送所有到期提醒
         const currentTime = new Date().getTime();
@@ -129,13 +93,13 @@ export const startReminderChecker = async (client) => {
             });
           }
         }
-        // 移除已執行的提醒
-        reminders = reminders.filter(
-          (reminder) =>
-            !dueReminders.some((executed) => reminder.id === executed.id)
-        );
-        // 更新檔案
-        await safeWriteFile(REMINDERS_FILE, JSON.stringify(reminders, null, 2));
+        const dueReminderIds = dueReminders.map((reminder) => reminder.id);
+        if (dueReminderIds.length > 0) {
+          const placeholders = dueReminderIds.map(() => "?").join(", ");
+          await global.db
+            .prepare(`DELETE FROM reminders WHERE id IN (${placeholders})`)
+            .run(...dueReminderIds);
+        }
         isChecking = false;
         startReminderChecker(client); // 繼續檢查下一個提醒
       }, delay);
@@ -151,27 +115,20 @@ export const startReminderChecker = async (client) => {
 
 export const addReminder = async (reminder, client) => {
   try {
-    let reminders = [];
-    const now = new Date();
-    try {
-      const data = await fs.readFile(REMINDERS_FILE, "utf-8");
-      reminders = JSON.parse(data);
-    } catch {
-      // 檔案不存在
-    }
-
-    // 清理過期提醒
-    reminders = reminders.filter(
-      (existingReminder) =>
-        new Date(existingReminder.time).getTime() > now.getTime()
-    );
-    reminder.id = await getNextId();
+    const db = global.db;
     reminder.createdAt = new Date().toISOString();
 
-    reminders.push(reminder);
-    reminders.sort((a, b) => new Date(a.time) - new Date(b.time));
-
-    await safeWriteFile(REMINDERS_FILE, JSON.stringify(reminders, null, 2));
+    await db
+      .prepare(
+        "INSERT INTO reminders (userId, channelId, time, message, createdAt) VALUES (?, ?, ?, ?, ?)"
+      )
+      .run(
+        reminder.userId,
+        reminder.channelId,
+        reminder.time,
+        reminder.message,
+        reminder.createdAt
+      );
 
     isChecking = false;
     startReminderChecker(client);
@@ -181,17 +138,15 @@ export const addReminder = async (reminder, client) => {
 };
 export const deleteReminder = async (reminderId, client) => {
   try {
-    const remindersData = await fs.readFile(REMINDERS_FILE, "utf-8");
-    const reminders = JSON.parse(remindersData);
+    const db = global.db;
+    const deletedReminder = await db
+      .prepare("SELECT * FROM reminders WHERE id = ?")
+      .get(reminderId);
 
-    const index = reminders.findIndex((reminder) => reminder.id === reminderId);
-
-    if (index === -1) {
+    if (!deletedReminder) {
       return [];
     }
-    const [deletedReminder] = reminders.splice(index, 1);
-
-    await safeWriteFile(REMINDERS_FILE, JSON.stringify(reminders, null, 2));
+    await db.prepare("DELETE FROM reminders WHERE id = ?").run(reminderId);
 
     isChecking = false;
     startReminderChecker(client); // 繼續檢查下一個提醒
@@ -204,8 +159,9 @@ export const deleteReminder = async (reminderId, client) => {
 export const getReminder = async () => {
   let reminders = [];
   try {
-    const data = await fs.readFile(REMINDERS_FILE, "utf-8");
-    reminders = JSON.parse(data);
+    const db = global.db;
+    const data = await db.prepare("SELECT * FROM reminders").all();
+    reminders = data;
     return reminders;
   } catch (error) {
     console.error("❌ 無法取得提醒任務：", error);
