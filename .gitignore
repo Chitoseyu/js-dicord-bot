@@ -1,6 +1,4 @@
 node_modules
 .env
-replies.json
-settings.json
 src/logs
 *.sqlite

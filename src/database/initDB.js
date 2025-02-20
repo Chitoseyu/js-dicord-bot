@@ -23,6 +23,15 @@ export async function initDatabase() {
       response TEXT NOT NULL
     )
   `);
+  // 建立群組設定表
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS server_settings  (
+      guildId TEXT PRIMARY KEY,
+      enabled INTEGER NOT NULL DEFAULT 0,
+      joinMessage TEXT DEFAULT '',
+      leaveMessage TEXT DEFAULT ''
+    )
+  `);
 
   // console.log("✅ SQLite 資料庫已初始化");
   return db;

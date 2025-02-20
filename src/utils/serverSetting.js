@@ -1,26 +1,42 @@
-import fs from "fs";
-import path from "path";
 import { v4 as uuidv4 } from "uuid";
 import { useAppStore } from "@/store/app";
 
-const settingsFile = path.resolve("./settings.json");
-
-export function getServerSettings(guildId) {
-  if (!fs.existsSync(settingsFile)) return false;
-  const data = JSON.parse(fs.readFileSync(settingsFile, "utf8"));
-  return data[guildId] ?? false;
-}
-export function saveServerSettings(guildId, enabled) {
-  let data = {};
-  if (fs.existsSync(settingsFile)) {
-    data = JSON.parse(fs.readFileSync(settingsFile, "utf8"));
-  }
-  data[guildId] = enabled;
-  fs.writeFileSync(settingsFile, JSON.stringify(data, null, 2));
-}
-
 const db = global.db;
 const appStore = useAppStore();
+
+export function getServerSettings(guildId) {
+  const row = db
+    .prepare("SELECT * FROM server_settings WHERE guildId = ?")
+    .get(guildId);
+
+  return row
+    ? {
+        enabled: !!row.enabled,
+        joinMessage: row.joinMessage,
+        leaveMessage: row.leaveMessage,
+      }
+    : false;
+}
+
+export function saveServerSettings(settings) {
+  db.prepare(
+    `INSERT INTO server_settings (guildId, enabled, joinMessage, leaveMessage)
+       VALUES (?, ?, ?, ?)
+       ON CONFLICT(guildId) DO UPDATE SET
+       enabled = excluded.enabled,
+       joinMessage = excluded.joinMessage,
+       leaveMessage = excluded.leaveMessage`
+  ).run(
+    settings.guildId,
+    settings.enabled ? 1 : 0,
+    settings.joinMessage,
+    settings.leaveMessage
+  );
+
+  return db
+    .prepare("SELECT * FROM server_settings WHERE guildId = ?")
+    .get(settings.guildId);
+}
 
 const generateUniqueId = (existingIds) => {
   let uniqueId;

@@ -31,23 +31,28 @@ export const action = async (ctx) => {
     const joinMessage = ctx.options.getString("join_message");
     const leaveMessage = ctx.options.getString("leave_message");
 
+    const guildId = ctx.guild.id;
+
+    let settings = {
+      guildId: guildId,
+      enabled: enabled,
+    };
+    let default_join = "🎉 歡迎新成員 {user} 加入！";
+    let default_leave = "👋 成員 {user} 離開了 我們懷念他 😢";
+
     // 讀取現有設定
-    const currentSettings = getServerSettings(ctx.guild.id) || {};
+    const currentSettings = getServerSettings(guildId);
+
+    if (currentSettings) {
+      default_join = currentSettings.joinMessage;
+      default_leave = currentSettings.leaveMessage;
+    }
+
+    settings.joinMessage = joinMessage ? joinMessage : default_join;
+    settings.leaveMessage = leaveMessage ? leaveMessage : default_leave;
 
     // 儲存新設定
-    await saveServerSettings(ctx.guild.id, {
-      enabled,
-      joinMessage:
-        joinMessage ||
-        currentSettings.joinMessage ||
-        "🎉 歡迎新成員 {user} 加入！",
-      leaveMessage:
-        leaveMessage ||
-        currentSettings.leaveMessage ||
-        "👋 成員 {user} 離開了 我們懷念他 😢",
-    });
-
-    const greetSettings = getServerSettings(ctx.guild.id);
+    const greetSettings = await saveServerSettings(settings);
 
     await ctx.reply({
       content:
