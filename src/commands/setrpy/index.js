@@ -4,9 +4,8 @@ import {
   EmbedBuilder,
   MessageFlags,
 } from "discord.js";
-import { useAppStore } from "@/store/app";
-import { v4 as uuidv4 } from "uuid";
 import { logAction } from "@/utils/logHelper";
+import RepliesManager from "@/utils/serverSetting.js";
 
 export const command = new SlashCommandBuilder()
   .setName("setrpy")
@@ -20,14 +19,6 @@ export const command = new SlashCommandBuilder()
     option.setName("response").setDescription("回應內容").setRequired(true)
   );
 
-const generateUniqueId = (existingIds) => {
-  let uniqueId;
-  do {
-    uniqueId = uuidv4().replace(/-/g, "").substring(0, 6); // 生成6位數
-  } while (existingIds.has(uniqueId)); // 已存在則重產生
-  return uniqueId;
-};
-
 export const action = async (ctx) => {
   // 記錄使用者訊息到日誌檔案
   const guildName = ctx.guild.name; // 群組名稱
@@ -39,20 +30,7 @@ export const action = async (ctx) => {
     const keyword = ctx.options.getString("keyword").toLowerCase();
     const response = ctx.options.getString("response");
 
-    const appStore = useAppStore();
-    if (!appStore.replies.has(guildId)) {
-      appStore.replies.set(guildId, new Map());
-    }
-
-    const guildReplies = appStore.replies.get(guildId);
-    // 已存在的ID
-    const existingIds = new Set(guildReplies.keys());
-    // 避免ID衝突
-    const uniqueId = generateUniqueId(existingIds);
-
-    guildReplies.set(uniqueId, { keyword, response });
-
-    appStore.saveReplies();
+    const uniqueId = RepliesManager.addReply(guildId, keyword, response);
 
     logMessage = `自訂回應設定，ID=${uniqueId}, 關鍵字=${keyword}, 回應=${response}`;
     logAction("success", "setrpy", guildName, userName, nickname, logMessage);

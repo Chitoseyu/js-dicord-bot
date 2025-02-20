@@ -6,6 +6,7 @@ import {
 } from "discord.js";
 import { useAppStore } from "@/store/app";
 import { logAction } from "@/utils/logHelper";
+import RepliesManager from "@/utils/serverSetting.js";
 
 export const command = new SlashCommandBuilder()
   .setName("delrpy")
@@ -24,11 +25,9 @@ export const action = async (ctx) => {
   let logMessage = "";
   try {
     const id = ctx.options.getString("id");
-    const appStore = useAppStore();
     const guildId = ctx.guild.id;
 
-    const guildReplies = appStore.replies.get(guildId);
-    if (!guildReplies || !guildReplies.has(id)) {
+    if (!RepliesManager.getRepliesByGuild(guildId).has(id)) {
       await ctx.reply({
         content: `❌ 找不到 ID 為 \`${id}\` 的自訂回應`,
         flags: MessageFlags.Ephemeral,
@@ -36,11 +35,9 @@ export const action = async (ctx) => {
       return;
     }
 
-    const deletedReply = guildReplies.get(id); // 被刪除的資訊
+    const deletedReply = RepliesManager.getRepliesByGuild(guildId).get(id); // 被刪除的資訊
 
-    guildReplies.delete(id);
-    appStore.replies.set(guildId, guildReplies);
-    appStore.saveReplies();
+    RepliesManager.deleteReply(guildId, id);
 
     logMessage = `自訂回應刪除，ID=${id}, 關鍵字=${deletedReply.keyword}, 回應=${deletedReply.response}`;
     logAction("success", "delrpy", guildName, userName, nickname, logMessage);

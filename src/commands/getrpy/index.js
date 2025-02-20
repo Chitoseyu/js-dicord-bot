@@ -7,7 +7,7 @@ import {
   ButtonStyle,
   MessageFlags,
 } from "discord.js";
-import { useAppStore } from "@/store/app";
+import RepliesManager from "@/utils/serverSetting.js";
 
 const ITEMS_PER_PAGE = 10; // 指令每頁顯示數量
 
@@ -23,13 +23,10 @@ export const action = async (ctx) => {
     await ctx.deferReply({ flags: MessageFlags.Ephemeral });
 
     const guildId = ctx.guildId;
-    const appStore = useAppStore();
-
-    // 確認該伺服器是否有設定
-    if (!appStore.replies.has(guildId)) {
+    const guildReplies = RepliesManager.getReplies(guildId);
+    if (guildReplies.size === 0) {
       return await ctx.editReply("❌ 尚未設定任何回應！");
     }
-    const guildReplies = appStore.replies.get(guildId);
 
     // 分頁處理資料
     const paginatedData = [];
@@ -115,6 +112,7 @@ export const action = async (ctx) => {
       });
     });
   } catch (error) {
+    console.log(error.message);
     await ctx.editReply({
       content: "❌ 查詢自訂回應時出錯，請稍後再試",
       flags: MessageFlags.Ephemeral,

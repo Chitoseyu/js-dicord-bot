@@ -14,7 +14,16 @@ export async function initDatabase() {
       createdAt TEXT DEFAULT CURRENT_TIMESTAMP
     )
   `);
+  // 建立自訂回應表
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS replies (
+      guildId TEXT NOT NULL,
+      uniqueId TEXT PRIMARY KEY,
+      keyword TEXT NOT NULL,
+      response TEXT NOT NULL
+    )
+  `);
 
-  console.log("✅ SQLite 資料庫已初始化");
+  // console.log("✅ SQLite 資料庫已初始化");
   return db;
 }

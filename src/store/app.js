@@ -1,5 +1,4 @@
 import { defineStore } from "pinia";
-import fs from "fs";
 
 export const useAppStore = defineStore("app", {
   state: () => ({
@@ -9,43 +8,32 @@ export const useAppStore = defineStore("app", {
   }),
   getters: {},
   actions: {
-    loadReplies() {
+    // 載入回覆
+    loadReplies(guildId = null) {
       try {
-        if (fs.existsSync("./replies.json")) {
-          const data = JSON.parse(fs.readFileSync("./replies.json"));
-          if (data) {
-            this.replies = new Map(
-              Object.entries(data).map(([guildId, keywords]) => [
-                guildId,
-                new Map(Object.entries(keywords)),
-              ])
-            );
-          }
+        let rows;
+        if (guildId) {
+          rows = global.db
+            .prepare("SELECT * FROM replies WHERE guildId = ?")
+            .all(guildId);
+          this.replies.set(guildId, new Map()); // 只清除特定 guild 的回應
         } else {
-          console.log("No replies.json file found. Creating a new one...");
+          rows = global.db.prepare("SELECT * FROM replies").all();
+          this.replies.clear(); // 只有在完全載入時清空
         }
+
+        for (const row of rows) {
+          if (!this.replies.has(row.guildId)) {
+            this.replies.set(row.guildId, new Map());
+          }
+          this.replies.get(row.guildId).set(row.uniqueId, {
+            keyword: row.keyword,
+            response: row.response,
+          });
+        }
+        // console.log("✅ Replies loaded from SQLite.");
       } catch (error) {
-        console.error("Error loading replies:", error);
-      }
-    },
-    saveReplies() {
-      try {
-        const data = Object.fromEntries(
-          [...this.replies.entries()].map(([guildId, replies]) => [
-            guildId,
-            Object.fromEntries(
-              [...replies.entries()].map(
-                ([uniqueId, { keyword, response }]) => [
-                  uniqueId,
-                  { keyword, response },
-                ]
-              )
-            ),
-          ])
-        );
-        fs.writeFileSync("./replies.json", JSON.stringify(data, null, 2));
-      } catch (error) {
-        console.error("Error saving replies:", error);
+        console.error("❌ Error loading replies:", error);
       }
     },
   },
