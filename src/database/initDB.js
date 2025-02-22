@@ -32,6 +32,21 @@ export async function initDatabase() {
       leaveMessage TEXT DEFAULT ''
     )
   `);
+  // 建立操作log表
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS operation_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      createTime TEXT NOT NULL,
+      type TEXT NOT NULL,
+      command TEXT NOT NULL,
+      guildName TEXT NOT NULL,
+      userName TEXT NOT NULL,
+      nickname TEXT NOT NULL,
+      content TEXT NOT NULL,   
+      userId TEXT NOT NULL,    
+      guildId TEXT NOT NULL
+    );
+  `);
 
   // console.log("✅ SQLite 資料庫已初始化");
   return db;

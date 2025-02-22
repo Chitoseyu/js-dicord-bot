@@ -8,7 +8,9 @@ export const event = {
 };
 
 export const action = async (bot) => {
-  console.log(`啟動完成! 已登入 ${bot.user.tag}`);
+  const botname = bot.user.tag;
+
+  console.log(`啟動完成! 已登入 ${botname}`);
 
   startReminderChecker(bot);
 
@@ -16,6 +18,23 @@ export const action = async (bot) => {
     status: "online", //idle
     activities: [{ name: `パニグレ`, type: ActivityType.PLAYING }],
   });
+
+  // 記錄啟動時間
+  const startTime = Date.now();
+
+  setInterval(() => {
+    const elapsed = Date.now() - startTime;
+    const seconds = Math.floor((elapsed / 1000) % 60);
+    const minutes = Math.floor((elapsed / 1000 / 60) % 60);
+    const hours = Math.floor(elapsed / 1000 / 60 / 60);
+    const days = Math.floor(elapsed / (1000 * 60 * 60 * 24));
+
+    process.stdout.clearLine(0); // 清除當前行
+    process.stdout.cursorTo(0); // 將游標移到行首
+    process.stdout.write(
+      `⏳ 運行時間: ${days} 天 ${hours} 小時 ${minutes} 分鐘 ${seconds} 秒`
+    );
+  }, 1000);
 
   try {
     const channel = bot.channels.cache.get(process.env.Webhook_channel_id);
@@ -28,7 +47,7 @@ export const action = async (bot) => {
       return console.log("No webhook was found that I can use!");
     }
 
-    const messageContent = `Liv Developer 上線囉！`;
+    const messageContent = botname + ` 上線囉！`;
 
     await webhook.send({
       content: messageContent,

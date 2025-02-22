@@ -20,6 +20,8 @@ export const action = async (ctx) => {
   const guildName = ctx.guild.name; // 群組名稱
   const userName = ctx.member?.displayName || ctx.user.username; // 用戶名稱
   const nickname = ctx.member.nickname || "無"; // 群組暱稱
+  const guildId = ctx.guild.id; // 群組 ID
+  const userId = ctx.user.id; // 用戶 ID
   let logMessage = "";
   try {
     const message = ctx.options.getString("text");
@@ -41,8 +43,19 @@ export const action = async (ctx) => {
     await ctx.channel.send(message);
 
     logMessage = `Bot發言，${message}`;
-
-    logAction("success", "sayd", guildName, userName, nickname, logMessage);
+    let infoType = "success";
+    let cmdNmae = "sayd";
+    let logInfo = {
+      type: infoType,
+      commandName: cmdNmae,
+      guildName: guildName,
+      userName: userName,
+      nickname: nickname,
+      content: logMessage,
+      guildId: guildId,
+      userId: userId,
+    };
+    logAction(logInfo);
 
     const bot_reply = await ctx.reply({
       content: "✅ 已成功發送訊息( 3 秒後自動刪除)",
@@ -51,7 +64,9 @@ export const action = async (ctx) => {
     setTimeout(() => bot_reply.delete().catch(console.error), 3000);
   } catch (error) {
     logMessage = `Bot發言錯誤，${error.message}`;
-    logAction("error", "sayd", guildName, userName, nickname, logMessage);
+    logInfo.type = "error";
+    logInfo.logMessage = logMessage;
+    logAction(logInfo);
 
     await ctx.reply({
       content: "❌ 發生錯誤，請稍後再試。",

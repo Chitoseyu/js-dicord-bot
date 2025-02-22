@@ -19,28 +19,53 @@ export function getLogFileName(commandName) {
 }
 export const getTaipeiTime = () => {
   const now = new Date();
-  return now.toLocaleString("zh-TW", {
-    timeZone: "Asia/Taipei",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  });
+  return now
+    .toLocaleString("zh-TW", {
+      timeZone: "Asia/Taipei",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    })
+    .replace(/\//g, "-");
 };
-export const logAction = (
-  type,
-  commandName,
-  guildName,
-  userName,
-  nickname,
-  content
-) => {
-  const now = getTaipeiTime();
-  const logMessage = `【${now}】 [${type}] 群組：${guildName} | 用戶：${userName} | 群名片：${nickname} | 操作：${content}\n`;
+export const logAction = (logInfo) => {
+  const {
+    type,
+    commandName,
+    guildName,
+    userName,
+    nickname,
+    content,
+    guildId,
+    userId,
+  } = logInfo;
 
-  const logFileName = getLogFileName(commandName);
-  fs.appendFileSync(logFileName, logMessage);
+  const now = getTaipeiTime();
+
+  try {
+    db.prepare(
+      `INSERT INTO operation_logs (type, createTime, guildId, userId, guildName, userName, nickname, command, content)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).run(
+      type,
+      now,
+      guildId,
+      userId,
+      guildName,
+      userName,
+      nickname,
+      commandName,
+      content
+    );
+  } catch (error) {
+    console.error("❌ 無法記錄日誌:", error);
+  }
+  // 寫入本地檔案
+  // const logMessage = `【${now}】 [${type}] 群組：${guildName} | 用戶：${userName} | 群名片：${nickname} | 操作：${content}\n`;
+  // const logFileName = getLogFileName(commandName);
+  // fs.appendFileSync(logFileName, logMessage);
 };

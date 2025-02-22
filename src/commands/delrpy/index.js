@@ -22,6 +22,8 @@ export const action = async (ctx) => {
   const guildName = ctx.guild.name; // 群組名稱
   const userName = ctx.member?.displayName || ctx.user.username; // 用戶名稱
   const nickname = ctx.member.nickname || "無"; // 群組暱稱
+  const guildId = ctx.guild.id; // 群組 ID
+  const userId = ctx.user.id; // 用戶 ID
   let logMessage = "";
   try {
     const id = ctx.options.getString("id");
@@ -40,8 +42,19 @@ export const action = async (ctx) => {
     RepliesManager.deleteReply(guildId, id);
 
     logMessage = `自訂回應刪除，ID=${id}, 關鍵字=${deletedReply.keyword}, 回應=${deletedReply.response}`;
-    logAction("success", "delrpy", guildName, userName, nickname, logMessage);
-
+    let infoType = "success";
+    let cmdNmae = "delrpy";
+    let logInfo = {
+      type: infoType,
+      commandName: cmdNmae,
+      guildName: guildName,
+      userName: userName,
+      nickname: nickname,
+      content: logMessage,
+      guildId: guildId,
+      userId: userId,
+    };
+    logAction(logInfo);
     await ctx.reply({
       embeds: [
         new EmbedBuilder()
@@ -61,7 +74,9 @@ export const action = async (ctx) => {
     });
   } catch (error) {
     logMessage = `自訂回應刪除錯誤，${error.message}`;
-    logAction("error", "delrpy", guildName, userName, nickname, logMessage);
+    logInfo.type = "error";
+    logInfo.logMessage = logMessage;
+    logAction(logInfo);
     await ctx.reply({
       content: "❌ 刪除自訂回應失敗，請稍後再試",
       flags: MessageFlags.Ephemeral,

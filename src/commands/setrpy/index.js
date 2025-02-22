@@ -24,6 +24,8 @@ export const action = async (ctx) => {
   const guildName = ctx.guild.name; // 群組名稱
   const userName = ctx.member?.displayName || ctx.user.username; // 用戶名稱
   const nickname = ctx.member.nickname || "無"; // 群組暱稱
+  const guildId = ctx.guild.id; // 群組 ID
+  const userId = ctx.user.id; // 用戶 ID
   let logMessage = "";
   try {
     const guildId = ctx.guildId;
@@ -33,7 +35,19 @@ export const action = async (ctx) => {
     const uniqueId = RepliesManager.addReply(guildId, keyword, response);
 
     logMessage = `自訂回應設定，ID=${uniqueId}, 關鍵字=${keyword}, 回應=${response}`;
-    logAction("success", "setrpy", guildName, userName, nickname, logMessage);
+    let infoType = "success";
+    let cmdNmae = "setrpy";
+    let logInfo = {
+      type: infoType,
+      commandName: cmdNmae,
+      guildName: guildName,
+      userName: userName,
+      nickname: nickname,
+      content: logMessage,
+      guildId: guildId,
+      userId: userId,
+    };
+    logAction(logInfo);
 
     await ctx.reply({
       embeds: [
@@ -50,7 +64,9 @@ export const action = async (ctx) => {
     });
   } catch (error) {
     logMessage = `自訂回應設定錯誤，${error.message}`;
-    logAction("error", "setrpy", guildName, userName, nickname, logMessage);
+    logInfo.type = "error";
+    logInfo.logMessage = logMessage;
+    logAction(logInfo);
     await ctx.reply({
       content: "❌ 設定回應失敗，請稍後再試。",
       flags: MessageFlags.Ephemeral,

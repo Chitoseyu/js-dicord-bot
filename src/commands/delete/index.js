@@ -22,6 +22,8 @@ export const action = async (ctx) => {
   const guildName = ctx.guild.name; // 群組名稱
   const userName = ctx.member?.displayName || ctx.user.username; // 用戶名稱
   const nickname = ctx.member.nickname || "無"; // 群組暱稱
+  const guildId = ctx.guild.id; // 群組 ID
+  const userId = ctx.user.id; // 用戶 ID
   let logMessage = "";
   try {
     const count = ctx.options.getInteger("count");
@@ -65,7 +67,20 @@ export const action = async (ctx) => {
     const totalDeleted = recentMessages.length + oldMessages.length;
 
     logMessage = `刪除訊息 ${totalDeleted} 筆，14 天內 ${recentMessages.length} 筆，超過 14 天 ${oldMessages.length} 筆`;
-    logAction("success", "delete", guildName, userName, nickname, logMessage);
+
+    let infoType = "success";
+    let cmdNmae = "delete";
+    let logInfo = {
+      type: infoType,
+      commandName: cmdNmae,
+      guildName: guildName,
+      userName: userName,
+      nickname: nickname,
+      content: logMessage,
+      guildId: guildId,
+      userId: userId,
+    };
+    logAction(logInfo);
 
     const botReply = await ctx.reply({
       content: `✅ 已成功刪除 ${totalDeleted} 筆訊息( 3 秒後自動刪除)`,
@@ -73,7 +88,9 @@ export const action = async (ctx) => {
     setTimeout(() => botReply.delete().catch(console.error), 3000);
   } catch (error) {
     logMessage = `刪除訊息錯誤，${error.message}`;
-    logAction("error", "delete", guildName, userName, nickname, logMessage);
+    logInfo.type = "error";
+    logInfo.logMessage = logMessage;
+    logAction(logInfo);
     await ctx.reply({
       content: "❌ 刪除訊息失敗",
       flags: MessageFlags.Ephemeral,
