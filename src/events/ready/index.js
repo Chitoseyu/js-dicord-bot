@@ -14,13 +14,31 @@ export const action = async (bot) => {
 
   startReminderChecker(bot);
 
-  bot.user.setPresence({
-    status: "online", //idle
-    activities: [{ name: `パニグレ`, type: ActivityType.PLAYING }],
-  });
-
   // 記錄啟動時間
   const startTime = Date.now();
+
+  let botStatus = [
+    {
+      status: "online",
+      activities: [
+        {
+          name: `パニグレ`,
+          type: ActivityType.Playing,
+        },
+      ],
+    },
+    {
+      status: "idle",
+      activities: [
+        {
+          name: `パニーニ`,
+          type: ActivityType.Watching,
+        },
+      ],
+    },
+  ];
+  let random = Math.floor(Math.random() * botStatus.length);
+  bot.user.setPresence(botStatus[random]);
 
   setInterval(() => {
     const elapsed = Date.now() - startTime;
