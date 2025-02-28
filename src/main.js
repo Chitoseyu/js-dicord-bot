@@ -7,6 +7,13 @@ import { loadCommands, loadEvents } from "@/core/loader";
 import statusRoutes from "./routes/index.js";
 import { initDatabase } from "@/database/initDB.js";
 
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("🔥 Unhandled Promise Rejection:", reason);
+});
+process.on("uncaughtException", (err) => {
+  console.error("💥 Uncaught Exception:", err);
+});
+
 vueInit();
 dotenv.config();
 
