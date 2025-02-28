@@ -31,6 +31,19 @@ export const action = async (ctx) => {
   const guildId = ctx.guild.id; // 群組 ID
   const userId = ctx.user.id; // 用戶 ID
   let logMessage = "";
+
+  let infoType = "success";
+  let cmdNmae = "delete";
+  let logInfo = {
+    type: infoType,
+    commandName: cmdNmae,
+    guildName: guildName,
+    userName: userName,
+    nickname: nickname,
+    content: logMessage,
+    guildId: guildId,
+    userId: userId,
+  };
   try {
     const count = ctx.options.getInteger("count");
     const targetUser = ctx.options.getUser("target");
@@ -46,7 +59,12 @@ export const action = async (ctx) => {
     let messages = await ctx.channel.messages.fetch({ limit: 100 });
 
     if (targetUserId) {
-      messages = messages.filter((msg) => msg.author.id === targetUserId);
+      // let filterVal = messages.filter((msg) => msg.author.id === targetUserId);
+      // const filteredMessages = Array.from(filterVal.values()).slice(0, count);
+      const filteredMessages = Array.from(messages.values())
+        .filter((msg) => msg.author.id === targetUserId)
+        .slice(0, count);
+      messages = new Map(filteredMessages.map((msg) => [msg.id, msg]));
     } else {
       messages = await ctx.channel.messages.fetch({ limit: count });
     }
@@ -86,19 +104,8 @@ export const action = async (ctx) => {
     } else {
       logMessage = `刪除頻道訊息 ${totalDeleted} 筆，14 天內 ${recentMessages.length} 筆，超過 14 天 ${oldMessages.length} 筆`;
     }
+    logInfo.content = logMessage;
 
-    let infoType = "success";
-    let cmdNmae = "delete";
-    let logInfo = {
-      type: infoType,
-      commandName: cmdNmae,
-      guildName: guildName,
-      userName: userName,
-      nickname: nickname,
-      content: logMessage,
-      guildId: guildId,
-      userId: userId,
-    };
     logAction(logInfo);
 
     const botReply = await ctx.reply({
@@ -108,7 +115,7 @@ export const action = async (ctx) => {
   } catch (error) {
     logMessage = `刪除訊息錯誤，${error.message}`;
     logInfo.type = "error";
-    logInfo.logMessage = logMessage;
+    logInfo.content = logMessage;
     logAction(logInfo);
     await ctx.reply({
       content: "❌ 刪除訊息失敗",

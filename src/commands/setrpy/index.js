@@ -65,7 +65,7 @@ export const action = async (ctx) => {
   } catch (error) {
     logMessage = `自訂回應設定錯誤，${error.message}`;
     logInfo.type = "error";
-    logInfo.logMessage = logMessage;
+    logInfo.content = logMessage;
     logAction(logInfo);
     await ctx.reply({
       content: "❌ 設定回應失敗，請稍後再試。",

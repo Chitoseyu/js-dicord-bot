@@ -40,19 +40,19 @@ export const action = async (bot) => {
   let random = Math.floor(Math.random() * botStatus.length);
   bot.user.setPresence(botStatus[random]);
 
-  setInterval(() => {
-    const elapsed = Date.now() - startTime;
-    const seconds = Math.floor((elapsed / 1000) % 60);
-    const minutes = Math.floor((elapsed / 1000 / 60) % 60);
-    const hours = Math.floor(elapsed / 1000 / 60 / 60);
-    const days = Math.floor(elapsed / (1000 * 60 * 60 * 24));
+  // setInterval(() => {
+  //   const elapsed = Date.now() - startTime;
+  //   const seconds = Math.floor((elapsed / 1000) % 60);
+  //   const minutes = Math.floor((elapsed / 1000 / 60) % 60);
+  //   const hours = Math.floor(elapsed / 1000 / 60 / 60);
+  //   const days = Math.floor(elapsed / (1000 * 60 * 60 * 24));
 
-    process.stdout.clearLine(0); // 清除當前行
-    process.stdout.cursorTo(0); // 將游標移到行首
-    process.stdout.write(
-      `⏳ 運行時間: ${days} 天 ${hours} 小時 ${minutes} 分鐘 ${seconds} 秒`
-    );
-  }, 1000);
+  //   process.stdout.clearLine(0); // 清除當前行
+  //   process.stdout.cursorTo(0); // 將游標移到行首
+  //   process.stdout.write(
+  //     `⏳ 運行時間: ${days} 天 ${hours} 小時 ${minutes} 分鐘 ${seconds} 秒`
+  //   );
+  // }, 1000);
 
   try {
     const channel = bot.channels.cache.get(process.env.Webhook_channel_id);
