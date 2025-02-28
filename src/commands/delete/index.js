@@ -15,6 +15,12 @@ export const command = new SlashCommandBuilder()
       .setName("count")
       .setDescription("要刪除的訊息數量（最多 100）")
       .setRequired(true)
+  )
+  .addUserOption((option) =>
+    option
+      .setName("target")
+      .setDescription("【 選填 】 刪除特定使用者訊息")
+      .setRequired(false)
   );
 
 export const action = async (ctx) => {
@@ -27,6 +33,9 @@ export const action = async (ctx) => {
   let logMessage = "";
   try {
     const count = ctx.options.getInteger("count");
+    const targetUser = ctx.options.getUser("target");
+    const targetUserId = targetUser?.id ?? null;
+
     if (count < 1 || count > 100) {
       return await ctx.reply({
         content: "❌ 請輸入 1 到 100 之間的訊息數量。",
@@ -34,7 +43,13 @@ export const action = async (ctx) => {
       });
     }
 
-    const messages = await ctx.channel.messages.fetch({ limit: count });
+    let messages = await ctx.channel.messages.fetch({ limit: 100 });
+
+    if (targetUserId) {
+      messages = messages.filter((msg) => msg.author.id === targetUserId);
+    } else {
+      messages = await ctx.channel.messages.fetch({ limit: count });
+    }
     const now = Date.now();
 
     // 分類訊息
@@ -66,7 +81,11 @@ export const action = async (ctx) => {
     // 回應結果
     const totalDeleted = recentMessages.length + oldMessages.length;
 
-    logMessage = `刪除訊息 ${totalDeleted} 筆，14 天內 ${recentMessages.length} 筆，超過 14 天 ${oldMessages.length} 筆`;
+    if (targetUser) {
+      logMessage = `刪除使用者 ${targetUser.tag} 訊息 ${totalDeleted} 筆，14 天內 ${recentMessages.length} 筆，超過 14 天 ${oldMessages.length} 筆`;
+    } else {
+      logMessage = `刪除頻道訊息 ${totalDeleted} 筆，14 天內 ${recentMessages.length} 筆，超過 14 天 ${oldMessages.length} 筆`;
+    }
 
     let infoType = "success";
     let cmdNmae = "delete";
